@@ -31,7 +31,7 @@ type PortGroup struct {
 	ExternalID map[interface{}]interface{}
 }
 
-func (odbi *ovndb) pgAddImp(group string, ports []string, external_ids map[string]string) (*OvnCommand, error) {
+func (odbi *ovndb) pgAddImp(group string, ports []string, acls []string, external_ids map[string]string) (*OvnCommand, error) {
 	namedUUID, err := newRowUUID()
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (odbi *ovndb) pgAddImp(group string, ports []string, external_ids map[strin
 	}
 
 	if ports != nil {
-		var portUUIDs []libovsdb.UUID
+		portUUIDs := make([]libovsdb.UUID, 0, len(ports))
 		for _, u := range ports {
 			portUUIDs = append(portUUIDs, stringToGoUUID(u))
 		}
@@ -64,6 +64,11 @@ func (odbi *ovndb) pgAddImp(group string, ports []string, external_ids map[strin
 		row["external_ids"] = oMap
 	}
 
+	if acls != nil {
+		fmt.Printf("***** acls not supported yet in pgAddImp *****\n")
+		return nil, ErrorOption
+	}
+
 	insertOp := libovsdb.Operation{
 		Op:       opInsert,
 		Table:    TablePortGroup,
@@ -74,7 +79,7 @@ func (odbi *ovndb) pgAddImp(group string, ports []string, external_ids map[strin
 	return &OvnCommand{operations, odbi, make([][]map[string]interface{}, len(operations))}, nil
 }
 
-func (odbi *ovndb) pgUpdateImp(group string, ports []string, external_ids map[string]string) (*OvnCommand, error) {
+func (odbi *ovndb) pgUpdateImp(group string, ports []string, acls []string, external_ids map[string]string) (*OvnCommand, error) {
 	row := make(OVNRow)
 	row["name"] = group
 
@@ -87,15 +92,35 @@ func (odbi *ovndb) pgUpdateImp(group string, ports []string, external_ids map[st
 	}
 
 	if ports != nil {
-		var portUUIDs []libovsdb.UUID
+		portUUIDs := make([]libovsdb.UUID, 0, len(ports))
 		for _, u := range ports {
 			portUUIDs = append(portUUIDs, stringToGoUUID(u))
 		}
-		pgports, err := libovsdb.NewOvsSet(portUUIDs)
+		pgPorts, err := libovsdb.NewOvsSet(portUUIDs)
 		if err != nil {
 			return nil, err
 		}
-		row["ports"] = pgports
+		row["ports"] = pgPorts
+	}
+
+	if external_ids != nil {
+		oMap, err := libovsdb.NewOvsMap(external_ids)
+		if err != nil {
+			return nil, err
+		}
+		row["external_ids"] = oMap
+	}
+
+	if acls != nil {
+		aclUUIDs := make([]libovsdb.UUID, 0, len(acls))
+		for _, u := range acls {
+			aclUUIDs = append(aclUUIDs, stringToGoUUID(u))
+		}
+		pgAcls, err := libovsdb.NewOvsSet(aclUUIDs)
+		if err != nil {
+			return nil, err
+		}
+		row["acls"] = pgAcls
 	}
 
 	if external_ids != nil {

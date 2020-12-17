@@ -43,12 +43,13 @@ const (
 type pgConfig struct {
 	pgName      string
 	ports       []string
+	acls        []string
 	externalIds map[string]string
 }
 
 type pgTest struct {
 name        string
-testFunc    func(group string, ports []string, external_ids map[string]string) (*OvnCommand, error)
+testFunc    func(group string, ports []string, acls []string, external_ids map[string]string) (*OvnCommand, error)
 startConfig pgConfig
 testConfig  pgConfig
 }
@@ -137,11 +138,13 @@ func TestPortGroupAPI(t *testing.T) {
 			startConfig: pgConfig{
 				pgName:"",
 				ports: nil,
+				acls: nil,
 				externalIds: nil,
 			},
 			testConfig: pgConfig{
 				pgName: PG_TEST_PG1,
 				ports: nil,
+				acls: nil,
 				externalIds: nil,
 			},
 		},
@@ -151,11 +154,13 @@ func TestPortGroupAPI(t *testing.T) {
 			startConfig: pgConfig{
 				pgName:"",
 				ports:nil,
+				acls: nil,
 				externalIds:nil,
 			},
 			testConfig: pgConfig{
 				pgName: PG_TEST_PG1,
 				ports: []string{lsp1UUID, lsp2UUID},
+				acls: nil,
 				externalIds: nil,
 			},
 		},
@@ -165,11 +170,13 @@ func TestPortGroupAPI(t *testing.T) {
 			startConfig: pgConfig{
 				pgName:"",
 				ports:nil,
+				acls: nil,
 				externalIds:nil,
 			},
 			testConfig: pgConfig{
 				pgName: PG_TEST_PG1,
 				ports: []string{lsp1UUID, lsp2UUID, lsp3UUID, lsp4UUID},
+				acls: nil,
 				externalIds: nil,
 			},
 		},
@@ -179,11 +186,13 @@ func TestPortGroupAPI(t *testing.T) {
 			startConfig: pgConfig{
 				pgName: PG_TEST_PG1,
 				ports: []string{lsp1UUID, lsp2UUID},
+				acls: nil,
 				externalIds: nil,
 			},
 			testConfig: pgConfig{
 				pgName: PG_TEST_PG2,
 				ports: []string{lsp1UUID, lsp2UUID},
+				acls: nil,
 				externalIds: nil,
 			},
 		},
@@ -193,11 +202,13 @@ func TestPortGroupAPI(t *testing.T) {
 			startConfig: pgConfig{
 				pgName:"",
 				ports:nil,
+				acls: nil,
 				externalIds:nil,
 			},
 			testConfig: pgConfig{
 				pgName: PG_TEST_PG1,
 				ports: nil,
+				acls: nil,
 				externalIds: map[string]string{PG_TEST_KEY_1: PG_TEST_ID_1, PG_TEST_KEY_2: PG_TEST_ID_2},
 			},
 		},
@@ -207,11 +218,13 @@ func TestPortGroupAPI(t *testing.T) {
 			startConfig: pgConfig{
 				pgName:"",
 				ports:nil,
+				acls: nil,
 				externalIds:nil,
 			},
 			testConfig: pgConfig{
 				pgName: PG_TEST_PG1,
 				ports: []string{lsp1UUID, lsp2UUID},
+				acls: nil,
 				externalIds: map[string]string{PG_TEST_KEY_1: PG_TEST_ID_1, PG_TEST_KEY_2: PG_TEST_ID_2},
 			},
 		},
@@ -221,11 +234,13 @@ func TestPortGroupAPI(t *testing.T) {
 			startConfig: pgConfig{
 				pgName:"",
 				ports:nil,
+				acls: nil,
 				externalIds:nil,
 			},
 			testConfig: pgConfig{
 				pgName: "",
 				ports:nil,
+				acls: nil,
 				externalIds:nil,
 			},
 		},
@@ -235,11 +250,13 @@ func TestPortGroupAPI(t *testing.T) {
 			startConfig: pgConfig{
 				pgName: PG_TEST_PG1,
 				ports: []string{lsp1UUID, lsp2UUID},
+				acls: nil,
 				externalIds: map[string]string{PG_TEST_KEY_1: PG_TEST_ID_1, PG_TEST_KEY_2: PG_TEST_ID_2},
 			},
 			testConfig: pgConfig{
 				pgName: PG_TEST_PG2,
 				ports: []string{lsp3UUID, lsp4UUID},
+				acls: nil,
 				externalIds: map[string]string{PG_TEST_KEY_1: PG_TEST_ID_1, PG_TEST_KEY_2: PG_TEST_ID_2},
 			},
 		},
@@ -249,11 +266,13 @@ func TestPortGroupAPI(t *testing.T) {
 			startConfig: pgConfig{
 				pgName:PG_TEST_PG1,
 				ports:nil,
+				acls: nil,
 				externalIds:nil,
 			},
 			testConfig: pgConfig{
 				pgName: PG_TEST_PG1,
 				ports: []string{lsp1UUID, lsp2UUID},
+				acls: nil,
 				externalIds: map[string]string{PG_TEST_KEY_1: PG_TEST_ID_1, PG_TEST_KEY_2: PG_TEST_ID_2},
 			},
 		},
@@ -263,11 +282,13 @@ func TestPortGroupAPI(t *testing.T) {
 			startConfig: pgConfig{
 				pgName:PG_TEST_PG1,
 				ports: []string{lsp1UUID, lsp2UUID},
+				acls: nil,
 				externalIds: map[string]string{PG_TEST_KEY_1: PG_TEST_ID_1},
 			},
 			testConfig: pgConfig{
 				pgName:PG_TEST_PG1,
 				ports: []string{lsp3UUID, lsp4UUID},
+				acls: nil,
 				externalIds: map[string]string{PG_TEST_KEY_2: PG_TEST_ID_2, PG_TEST_KEY_3: PG_TEST_ID_3},
 			},
 		},
@@ -277,14 +298,14 @@ func TestPortGroupAPI(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.startConfig.pgName != "" {
 				// Add start config
-				cmd, err = ovndbapi.PortGroupAdd(tc.startConfig.pgName, tc.startConfig.ports, tc.startConfig.externalIds)
+				cmd, err = ovndbapi.PortGroupAdd(tc.startConfig.pgName, tc.startConfig.ports, tc.startConfig.acls, tc.startConfig.externalIds)
 				assert.Nil(err)
 				err = ovndbapi.Execute(cmd)
 				assert.Nil(err)
 			}
 
 			// Add or Set the port group
-			cmd, err = tc.testFunc(tc.testConfig.pgName, tc.testConfig.ports, tc.testConfig.externalIds)
+			cmd, err = tc.testFunc(tc.testConfig.pgName, tc.testConfig.ports, tc.testConfig.acls, tc.testConfig.externalIds)
 			assert.Nil(err)
 			err = ovndbapi.Execute(cmd)
 			assert.Nil(err)
@@ -327,12 +348,12 @@ func TestPortGroupAPI(t *testing.T) {
 
 	t.Run("add duplicate port group", func(t *testing.T) {
 		// Add first port group
-		cmd, err = ovndbapi.PortGroupAdd(PG_TEST_PG1, []string{lsp1UUID, lsp2UUID}, nil)
+		cmd, err = ovndbapi.PortGroupAdd(PG_TEST_PG1, []string{lsp1UUID, lsp2UUID}, nil, nil)
 		assert.Nil(err)
 		err = ovndbapi.Execute(cmd)
 		assert.Nil(err)
 
-		cmd, err = ovndbapi.PortGroupAdd(PG_TEST_PG1, []string{lsp1UUID, lsp2UUID}, nil)
+		cmd, err = ovndbapi.PortGroupAdd(PG_TEST_PG1, []string{lsp1UUID, lsp2UUID}, nil, nil)
 		assert.NotNil(err)
 
 		// Delete the first port group
@@ -348,7 +369,7 @@ func TestPortGroupAPI(t *testing.T) {
 		ports := []string{lsp1UUID, badUUID.String()}
 
 		// Add the port group
-		cmd, err = ovndbapi.PortGroupAdd(PG_TEST_PG1, ports, nil)
+		cmd, err = ovndbapi.PortGroupAdd(PG_TEST_PG1, ports, nil, nil)
 		assert.Nil(err)
 		err = ovndbapi.Execute(cmd)
 		assert.Nil(err)
@@ -373,7 +394,7 @@ func TestPortGroupAPI(t *testing.T) {
 	})
 
 	t.Run("set port group that doesn't exist", func(t *testing.T) {
-		cmd, err = ovndbapi.PortGroupUpdate(PG_TEST_PG1, []string{lsp1UUID, lsp2UUID}, nil)
+		cmd, err = ovndbapi.PortGroupUpdate(PG_TEST_PG1, []string{lsp1UUID, lsp2UUID}, nil, nil)
 		assert.NotNil(err)
 	})
 

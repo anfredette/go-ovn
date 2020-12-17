@@ -65,12 +65,16 @@ type Client interface {
 	// List Load balancers for a LSW
 	LSLBList(ls string) ([]*LoadBalancer, error)
 
-	// Add ACL
+	// Add ACL to logical switch
 	ACLAdd(ls, direct, match, action string, priority int, external_ids map[string]string, logflag bool, meter string, severity string) (*OvnCommand, error)
+	// Create ACL. Must be assigned to logical switch or port group via the appropriate update command
+	ACLCreate(direct, match, action string, priority int, external_ids map[string]string, logflag bool, meter string, severity string) (*OvnCommand, error)
 	// Delete acl
 	ACLDel(ls, direct, match string, priority int, external_ids map[string]string) (*OvnCommand, error)
 	// Get all acl by lswitch
 	ACLList(ls string) ([]*ACL, error)
+	// Get all ACLs
+	ACLListAll() ([]*ACL, error)
 
 	// Get AS
 	ASGet(name string) (*AddressSet, error)
@@ -207,9 +211,9 @@ type Client interface {
 	SBGlobalGetOptions() (map[string]string, error)
 
 	// Creates a new port group in the Port_Group table named "group" with optional "ports" added to the group.
-	PortGroupAdd(group string, ports []string, external_ids map[string]string) (*OvnCommand, error)
+	PortGroupAdd(group string, ports []string, acls []string, external_ids map[string]string) (*OvnCommand, error)
 	// Sets "ports" and/or "external_ids" on the port group named "group". It is an error if group does not exist.
-	PortGroupUpdate(group string, ports []string, external_ids map[string]string) (*OvnCommand, error)
+	PortGroupUpdate(group string, ports []string, acls []string, external_ids map[string]string) (*OvnCommand, error)
 	// Deletes port group "group". It is an error if "group" does not exist.
 	PortGroupDel(group string) (*OvnCommand, error)
 	// Get PortGroup data structure if it exists
@@ -554,6 +558,10 @@ func (c *ovndb) ACLAdd(ls, direct, match, action string, priority int, external_
 	return c.aclAddImp(ls, direct, match, action, priority, external_ids, logflag, meter, severity)
 }
 
+func (c *ovndb) ACLCreate(direct, match, action string, priority int, external_ids map[string]string, logflag bool, meter string, severity string) (*OvnCommand, error) {
+	return c.aclCreateImp(direct, match, action, priority, external_ids, logflag, meter, severity)
+}
+
 func (c *ovndb) ACLDel(ls, direct, match string, priority int, external_ids map[string]string) (*OvnCommand, error) {
 	return c.aclDelImp(ls, direct, match, priority, external_ids)
 }
@@ -596,6 +604,10 @@ func (c *ovndb) LSPList(ls string) ([]*LogicalSwitchPort, error) {
 
 func (c *ovndb) ACLList(ls string) ([]*ACL, error) {
 	return c.aclListImp(ls)
+}
+
+func (c *ovndb) ACLListAll() ([]*ACL, error) {
+	return c.aclListAllImp()
 }
 
 func (c *ovndb) ASList() ([]*AddressSet, error) {
@@ -678,12 +690,12 @@ func (c *ovndb) SBGlobalGetOptions() (map[string]string, error) {
 	return c.sbGlobalGetOptionsImp()
 }
 
-func (c *ovndb) PortGroupAdd(group string, ports []string, external_ids map[string]string) (*OvnCommand, error) {
-	return c.pgAddImp(group, ports, external_ids)
+func (c *ovndb) PortGroupAdd(group string, ports []string, acls []string, external_ids map[string]string) (*OvnCommand, error) {
+	return c.pgAddImp(group, ports, acls, external_ids)
 }
 
-func (c *ovndb) PortGroupUpdate(group string, ports []string, external_ids map[string]string) (*OvnCommand, error) {
-	return c.pgUpdateImp(group, ports, external_ids)
+func (c *ovndb) PortGroupUpdate(group string, ports []string, acls []string, external_ids map[string]string) (*OvnCommand, error) {
+	return c.pgUpdateImp(group, ports, acls, external_ids)
 }
 
 func (c *ovndb) PortGroupDel(group string) (*OvnCommand, error) {

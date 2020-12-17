@@ -17,6 +17,7 @@
 package goovn
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -255,4 +256,89 @@ func TestACLs(t *testing.T) {
 	if err != nil {
 		assert.EqualError(t, ErrorNotFound, err.Error())
 	}
+}
+
+func TestACLs2(t *testing.T) {
+	ovndbapi := getOVNClient(DBNB)
+	var cmd *OvnCommand
+	var err error
+	assert := assert.New(t)
+
+	createSwitchACL := func(t *testing.T) {
+		t.Helper()
+
+		cmds := make([]*OvnCommand, 0)
+		cmd, err = ovndbapi.LSAdd(LSW)
+		fmt.Printf("***** LS Cmd: %+v\n", cmd)
+		assert.Nil(err)
+		cmds = append(cmds, cmd)
+
+		cmd, err = ovndbapi.LSPAdd(LSW, LSP)
+		assert.Nil(err)
+		cmds = append(cmds, cmd)
+
+		cmd, err = ovndbapi.LSPAdd(LSW, LSP_SECOND)
+		assert.Nil(err)
+		cmds = append(cmds, cmd)
+
+		// execute to create lsw and lsp
+		err = ovndbapi.Execute(cmds...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// nil cmds for next batch
+		cmds = make([]*OvnCommand, 0)
+		cmd, err = ovndbapi.ACLAdd(LSW, "to-lport", MATCH, "drop", 1001, nil, true, "meter1", "alert")
+		if err != nil {
+			t.Fatal(err)
+		}
+		cmds = append(cmds, cmd)
+
+		err = ovndbapi.Execute(cmds...)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	createSwitchACL(t)
+
+	cmds := make([]*OvnCommand, 0)
+
+	lsp1UUID, err := lspNameToUUID(LSP, ovndbapi)
+	assert.Nil(err)
+	lsp2UUID, err := lspNameToUUID(LSP_SECOND, ovndbapi)
+	assert.Nil(err)
+
+	// Add a port group
+	cmd, err = ovndbapi.PortGroupAdd(PG_TEST_PG1, []string{lsp1UUID, lsp2UUID}, nil, nil)
+	fmt.Printf("***** PG Cmd: %+v\n", cmd)
+	assert.Nil(err)
+	err = ovndbapi.Execute(cmd)
+	assert.Nil(err)
+
+	// nil cmds for next batch
+	cmds = make([]*OvnCommand, 0)
+
+	// Create an ACL
+	cmd, err = ovndbapi.ACLCreate("to-lport", MATCH, "drop", 1001, nil, false, "", "")
+	fmt.Printf("***** ACL Cmd: %+v\n", cmd)
+	aclRowId := getACLRowUUID(cmd)
+	fmt.Printf("***** ACL Row UUID: %s\n", aclRowId)
+	assert.Nil(err)
+	cmds = append(cmds, cmd)
+
+	// Add the ACL to the port group
+	cmd, err = ovndbapi.PortGroupUpdate(PG_TEST_PG1, []string{lsp1UUID, lsp2UUID}, []string{"e40fe879-d59a-492a-858a-066298035ff2"}, nil)
+	fmt.Printf("***** PG Cmd: %+v\n", cmd)
+	assert.Nil(err)
+	err = ovndbapi.Execute(cmd)
+	assert.Nil(err)
+
+	err = ovndbapi.Execute(cmds...)
+	assert.Nil(err)
+
+	// Dump ACL table:
+	_, _ = ovndbapi.ACLListAll()
+
 }

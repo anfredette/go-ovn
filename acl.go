@@ -17,6 +17,7 @@
 package goovn
 
 import (
+	"fmt"
 	"github.com/ebay/libovsdb"
 )
 
@@ -134,6 +135,10 @@ func (odbi *ovndb) getACLUUIDByRow(lsw, table string, row OVNRow) (string, error
 	return "", ErrorNotFound
 }
 
+func getACLRowUUID(aclCmd *OvnCommand) string {
+	return aclCmd.Operations[0].UUIDName
+}
+
 func (odbi *ovndb) aclAddImp(lsw, direct, match, action string, priority int, external_ids map[string]string, logflag bool, meter string, severity string) (*OvnCommand, error) {
 	namedUUID, err := newRowUUID()
 	if err != nil {
@@ -201,6 +206,51 @@ func (odbi *ovndb) aclAddImp(lsw, direct, match, action string, priority int, ex
 		Where:     []interface{}{condition},
 	}
 	operations := []libovsdb.Operation{insertOp, mutateOp}
+	return &OvnCommand{operations, odbi, make([][]map[string]interface{}, len(operations))}, nil
+}
+
+func (odbi *ovndb) aclCreateImp(direct, match, action string, priority int, external_ids map[string]string, logflag bool, meter string, severity string) (*OvnCommand, error) {
+	namedUUID, err := newRowUUID()
+	if err != nil {
+		return nil, err
+	}
+	row := make(OVNRow)
+	row["direction"] = direct
+	row["match"] = match
+	row["priority"] = priority
+
+	if external_ids != nil {
+		oMap, err := libovsdb.NewOvsMap(external_ids)
+		if err != nil {
+			return nil, err
+		}
+		row["external_ids"] = oMap
+	}
+
+	row["action"] = action
+	row["log"] = logflag
+	if logflag {
+		ok := odbi.meterFind(meter)
+		if ok {
+			row["meter"] = meter
+		}
+		switch severity {
+		case "alert", "debug", "info", "notice", "warning":
+			row["severity"] = severity
+		case "":
+			row["severity"] = "info"
+		default:
+			return nil, ErrorOption
+		}
+	}
+	insertOp := libovsdb.Operation{
+		Op:       opInsert,
+		Table:    TableACL,
+		Row:      row,
+		UUIDName: namedUUID,
+	}
+
+	operations := []libovsdb.Operation{insertOp}
 	return &OvnCommand{operations, odbi, make([][]map[string]interface{}, len(operations))}, nil
 }
 
@@ -334,4 +384,23 @@ func (odbi *ovndb) aclListImp(lsw string) ([]*ACL, error) {
 		}
 	}
 	return nil, ErrorNotFound
+}
+
+// Get all acls
+func (odbi *ovndb) aclListAllImp() ([]*ACL, error) {
+	odbi.cachemutex.RLock()
+	defer odbi.cachemutex.RUnlock()
+
+	fmt.Println("***** In aclListAllImp()")
+
+	cacheACL, ok := odbi.cache[TableACL]
+	if !ok {
+		return nil, ErrorNotFound
+	}
+
+	for _, drows := range cacheACL {
+		fmt.Printf("%#v", drows)
+	}
+
+	return nil, nil
 }
