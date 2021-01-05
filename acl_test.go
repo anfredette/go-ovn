@@ -154,7 +154,44 @@ func TestACLs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, true, len(acls) == 3, "test[%s]", "add second acl")
+	assert.Equal(t, true, len(acls) == 3, "test[%s]", "add second acl with different external ids")
+
+	cmd, err = ovndbapi.ACLAdd(LSW, "to-lport", MATCH_SECOND, "drop", 1001, nil, false, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ovndbapi.Execute(cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	acls, err = ovndbapi.ACLList(LSW)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, true, len(acls) == 4, "test[%s]", "add second acl with nil external ids")
+
+	cmd, err = ovndbapi.ACLDel(LSW, "to-lport", MATCH_SECOND, 1001, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ovndbapi.Execute(cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	acls, err = ovndbapi.ACLList(LSW)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, true, len(acls) == 3, "test[%s]", "acl remove")
+
+	// Try deleting the ACL without external ids again.  This should fail
+	cmd, err = ovndbapi.ACLDel(LSW, "to-lport", MATCH_SECOND, 1001, nil)
+	if err == nil {
+		t.Fatal(err)
+	}
 
 	cmd, err = ovndbapi.ACLDel(LSW, "to-lport", MATCH, 1001, map[string]string{})
 	if err != nil {
@@ -171,7 +208,14 @@ func TestACLs(t *testing.T) {
 	}
 	assert.Equal(t, true, len(acls) == 2, "test[%s]", "acl remove")
 
+	// The following delete should fail because the external ID's are only a subset of an existing ACL
 	cmd, err = ovndbapi.ACLDel(LSW, "to-lport", MATCH_SECOND, 1001, map[string]string{"A": "a"})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	// Delete ACL w/external_ids provided in a different order
+	cmd, err = ovndbapi.ACLDel(LSW, "to-lport", MATCH_SECOND, 1001, map[string]string{"B": "b", "A": "a"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +231,7 @@ func TestACLs(t *testing.T) {
 
 	assert.Equal(t, true, len(acls) == 1, "test[%s]", "acl remove")
 
-	cmd, err = ovndbapi.ACLDel(LSW, "to-lport", MATCH_SECOND, 1001, map[string]string{"A": "b"})
+	cmd, err = ovndbapi.ACLDel(LSW, "to-lport", MATCH_SECOND, 1001, map[string]string{"A": "b", "B": "b"})
 	if err != nil {
 		t.Fatal(err)
 	}

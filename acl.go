@@ -18,6 +18,7 @@ package goovn
 
 import (
 	"github.com/ebay/libovsdb"
+	"reflect"
 )
 
 // ACL ovnnb item
@@ -78,8 +79,14 @@ func (odbi *ovndb) getACLUUIDByRow(lsw, table string, row OVNRow) (string, error
 											goto unmatched
 										}
 									case "external_ids":
-										if value != nil && !odbi.oMapContians(cacheACL.Fields["external_ids"].(libovsdb.OvsMap).GoMap, value.(*libovsdb.OvsMap).GoMap) {
-											goto unmatched
+										if value == nil {
+											if len(cacheACL.Fields["external_ids"].(libovsdb.OvsMap).GoMap) != 0 {
+												goto unmatched
+											}
+										} else {
+											if !reflect.DeepEqual(cacheACL.Fields["external_ids"].(libovsdb.OvsMap).GoMap, value.(*libovsdb.OvsMap).GoMap) {
+												goto unmatched
+											}
 										}
 									}
 								}
@@ -119,8 +126,14 @@ func (odbi *ovndb) getACLUUIDByRow(lsw, table string, row OVNRow) (string, error
 									goto out
 								}
 							case "external_ids":
-								if value != nil && !odbi.oMapContians(cacheACL.Fields["external_ids"].(libovsdb.OvsMap).GoMap, value.(*libovsdb.OvsMap).GoMap) {
-									goto out
+								if value == nil {
+									if len(cacheACL.Fields["external_ids"].(libovsdb.OvsMap).GoMap) != 0 {
+										goto out
+									}
+								} else {
+									if !reflect.DeepEqual(cacheACL.Fields["external_ids"].(libovsdb.OvsMap).GoMap, value.(*libovsdb.OvsMap).GoMap) {
+										goto out
+									}
 								}
 							}
 						}
@@ -150,6 +163,9 @@ func (odbi *ovndb) aclAddImp(lsw, direct, match, action string, priority int, ex
 			return nil, err
 		}
 		row["external_ids"] = oMap
+	} else {
+		// Add nil so we only match existing ACLs without external_ids in getACLUUIDByRow
+		row["external_ids"] = nil
 	}
 
 	_, err = odbi.getACLUUIDByRow(lsw, TableACL, row)
@@ -160,6 +176,11 @@ func (odbi *ovndb) aclAddImp(lsw, direct, match, action string, priority int, ex
 		return nil, ErrorExist
 	default:
 		return nil, err
+	}
+
+	// Remove row["external_ids"] = nil because it causes an error during execution
+	if external_ids == nil {
+		delete(row, "external_ids")
 	}
 
 	row["action"] = action
@@ -226,11 +247,19 @@ func (odbi *ovndb) aclDelImp(lsw, direct, match string, priority int, external_i
 			return nil, err
 		}
 		row["external_ids"] = oMap
+	} else {
+		// Add nil so we only match existing ACLs without external_ids in getACLUUIDByRow
+		row["external_ids"] = nil
 	}
 
 	aclUUID, err := odbi.getACLUUIDByRow(lsw, TableACL, row)
 	if err != nil {
 		return nil, err
+	}
+
+	// Remove row["external_ids"] = nil because it causes an error during execution
+	if external_ids == nil {
+		delete(row, "external_ids")
 	}
 
 	uuidcondition := libovsdb.NewCondition("_uuid", "==", stringToGoUUID(aclUUID))
