@@ -17,6 +17,7 @@
 package goovn
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -116,15 +117,50 @@ func TestACLs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	fmt.Printf("***** len(lsps) == %d\n",len(acls))
 	assert.Equal(t, true, len(acls) == 1 && acls[0].Match == MATCH &&
 		acls[0].Action == "drop" && acls[0].Priority == 1001 && acls[0].Log == true && acls[0].Meter[0] == "meter1" && acls[0].Severity == "alert", "test[%s] %s", "add acl", acls[0])
 
 	cmd, err = ovndbapi.ACLAdd(LSW, "to-lport", MATCH, "drop", 1001, nil, true, "", "")
 	// ACLAdd must return error
+	fmt.Printf("***** len(lsps) == %d\n",len(acls))
 	assert.Equal(t, true, nil != err, "test[%s]", "add same acl twice, should only one added.")
 	// cmd is nil, so this is noop
 	err = ovndbapi.Execute(cmd)
+	fmt.Printf("***** len(lsps) == %d\n",len(acls))
 	assert.Equal(t, true, nil == err, "test[%s]", "add same acl twice, should only one added.")
+
+	cmd, err = ovndbapi.ACLDel(LSW, "to-lport", MATCH, 1001, map[string]string{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ovndbapi.Execute(cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	acls, err = ovndbapi.ACLList(LSW)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("***** len(lsps) == %d\n",len(acls))
+	assert.Equal(t, true, len(acls) == 0, "test[%s]", "acl remove")
+
+	cmd, err = ovndbapi.ACLAdd(LSW, "to-lport", MATCH_SECOND, "drop", 1001, nil, false, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ovndbapi.Execute(cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	acls, err = ovndbapi.ACLList(LSW)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("***** len(lsps) == %d\n",len(acls))
+	assert.Equal(t, true, len(acls) == 1, "test[%s]", "add second acl with nil external ids")
 
 	cmd, err = ovndbapi.ACLAdd(LSW, "to-lport", MATCH_SECOND, "drop", 1001, map[string]string{"A": "a", "B": "b"}, false, "", "")
 	if err != nil {
@@ -139,6 +175,7 @@ func TestACLs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	fmt.Printf("***** len(lsps) == %d\n",len(acls))
 	assert.Equal(t, true, len(acls) == 2, "test[%s]", "add second acl")
 
 	cmd, err = ovndbapi.ACLAdd(LSW, "to-lport", MATCH_SECOND, "drop", 1001, map[string]string{"A": "b", "B": "b"}, false, "", "")
@@ -154,9 +191,10 @@ func TestACLs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, true, len(acls) == 3, "test[%s]", "add second acl")
+	fmt.Printf("***** len(lsps) == %d\n",len(acls))
+	assert.Equal(t, true, len(acls) == 3, "test[%s]", "add second acl with different external ids")
 
-	cmd, err = ovndbapi.ACLDel(LSW, "to-lport", MATCH, 1001, map[string]string{})
+	cmd, err = ovndbapi.ACLDel(LSW, "to-lport", MATCH_SECOND, 1001, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +207,15 @@ func TestACLs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	fmt.Printf("***** len(lsps) == %d\n",len(acls))
 	assert.Equal(t, true, len(acls) == 2, "test[%s]", "acl remove")
+
+	// Try deleting the ACL without external ids again.  This should fail
+	cmd, err = ovndbapi.ACLDel(LSW, "to-lport", MATCH_SECOND, 1001, nil)
+	if err == nil {
+		t.Fatal(err)
+	}
 
 	cmd, err = ovndbapi.ACLDel(LSW, "to-lport", MATCH_SECOND, 1001, map[string]string{"A": "a"})
 	if err != nil {
@@ -185,6 +231,7 @@ func TestACLs(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	fmt.Printf("***** len(lsps) == %d\n",len(acls))
 	assert.Equal(t, true, len(acls) == 1, "test[%s]", "acl remove")
 
 	cmd, err = ovndbapi.ACLDel(LSW, "to-lport", MATCH_SECOND, 1001, map[string]string{"A": "b"})
@@ -200,6 +247,7 @@ func TestACLs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	fmt.Printf("***** len(lsps) == %d\n",len(acls))
 	assert.Equal(t, true, len(acls) == 0, "test[%s]", "acl remove")
 
 	cmd, err = ovndbapi.LSPDel(LSP)
@@ -216,6 +264,7 @@ func TestACLs(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	fmt.Printf("***** len(lsps) == %d\n",len(acls))
 	assert.Equal(t, true, len(lsps) == 1, "test[%s]", "one port remove")
 
 	cmd, err = ovndbapi.LSPDel(LSP_SECOND)
@@ -232,6 +281,7 @@ func TestACLs(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	fmt.Printf("***** len(lsps) == %d\n",len(acls))
 	assert.Equal(t, true, len(lsps) == 0, "test[%s]", "one port remove")
 
 	cmd, err = ovndbapi.LSDel(LSW)
