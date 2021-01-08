@@ -58,13 +58,13 @@ func (odbi *ovndb) getACLUUIDByRow(entityType EntityType, entity, table string, 
 	}
 
 	for _, drows = range tableCache {
-		if rlsw, ok := drows.Fields["name"].(string); ok && rlsw == entity {
+		if rowName, ok := drows.Fields["name"].(string); ok && rowName == entity {
 			rowFound = true
 			break
 		}
 	}
 	if !rowFound {
-		return "", ErrorNotFound
+		return "", ErrorEntityNotFound
 	}
 
 	acls := drows.Fields["acls"]

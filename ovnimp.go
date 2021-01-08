@@ -40,6 +40,8 @@ var (
 	ErrorExist = errors.New("object exist")
 	// ErrorNoChanges used when function called, but no changes
 	ErrorNoChanges = errors.New("no changes requested")
+	// ErrorEntityNotFound used when entity not found in ovnnb
+	ErrorEntityNotFound = errors.New("entity not found")
 )
 
 // OVNRow ovn nb/sb row
