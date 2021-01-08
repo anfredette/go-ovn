@@ -18,6 +18,7 @@ package goovn
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -170,6 +171,17 @@ func TestLogicalSwitchACLs(t *testing.T) {
 		t.Fatal(err)
 	}
 	assert.Equal(t, true, len(acls) == 4, "test[%s]", "add second acl with nil external ids")
+
+	// Add w/non-existent LSW name should fail
+	cmd, err = ovndbapi.ACLAdd("NonExistentLSWName", "to-lport", MATCH_SECOND, "drop", 1001, nil, false, "", "")
+	assert.NotNil(t, err)
+
+	// Add w/non-existent LSW UUID should fail
+	badUUID, err := uuid.NewRandom()
+	assert.Nil(t, err)
+
+	cmd, err = ovndbapi.ACLAdd(badUUID.String(), "to-lport", MATCH_SECOND, "drop", 1001, nil, false, "", "")
+	assert.NotNil(t, err)
 
 	cmd, err = ovndbapi.ACLDel(LSW, "to-lport", MATCH_SECOND, 1001, nil)
 	if err != nil {
