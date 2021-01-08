@@ -431,6 +431,13 @@ func TestPortGroupACLs(t *testing.T) {
 		}
 	})
 
+	t.Run("add ACLS to non-existent port group", func(t *testing.T) {
+		for _, tc := range portGroupACLTests {
+			cmd, err = ovndbapi.ACLAddEntity(PORT_GROUP, PG_TEST_NE_PG, tc.Direction, tc.Match, tc.Action, tc.Priority, iMapToSMap(tc.ExternalID), tc.Log, tc.Meter[0], tc.Severity)
+			assert.NotNil(t, err)
+		}
+	})
+
 	t.Run("delete ACLS from port group", func(t *testing.T) {
 		for i, tc := range portGroupACLTests {
 			cmd, err = ovndbapi.ACLDelEntity(PORT_GROUP, PG_TEST_PG1, tc.Direction, tc.Match, tc.Priority, iMapToSMap(tc.ExternalID))

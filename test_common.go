@@ -50,6 +50,7 @@ const (
 	FAKENOROUTER         = "fakenorouter"
 	PG_TEST_PG1          = "TestPortGroup1"
 	PG_TEST_PG2          = "TestPortGroup2"
+	PG_TEST_NE_PG        = "NonExistentPortGroup"
 	PG_TEST_LS1          = "TestLogicalSwitch"
 	PG_TEST_LSP1         = "TestLogicalSwitchPort1"
 	PG_TEST_LSP2         = "TestLogicalSwitchPort2"
