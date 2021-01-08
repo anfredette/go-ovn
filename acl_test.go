@@ -351,8 +351,6 @@ func TestPortGroupACLs(t *testing.T) {
 	var cmd *OvnCommand
 	var cmds []*OvnCommand
 	var err error
-	//var portGroupUUID string
-	//var acl OVNRow
 
 	t.Run("create switch, ports, port group, and meter for ACL testing", func(t *testing.T) {
 		cmds = make([]*OvnCommand, 0)

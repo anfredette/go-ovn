@@ -169,7 +169,6 @@ func (odbi *ovndb) getACLUUIDByRow(entityType EntityType, entity, table string, 
 
 func (odbi *ovndb) aclAddImp(entityType EntityType, entity, direct, match, action string, priority int, external_ids map[string]string, logflag bool, meter, severity string) (*OvnCommand, error) {
 	var table string
-	var condition []interface{}
 
 	switch entityType {
 	case LOGICAL_SWITCH:
@@ -244,7 +243,7 @@ func (odbi *ovndb) aclAddImp(entityType EntityType, entity, direct, match, actio
 		return nil, err
 	}
 	mutation := libovsdb.NewMutation("acls", opInsert, mutateSet)
-	condition = libovsdb.NewCondition("name", "==", entity)
+	condition := libovsdb.NewCondition("name", "==", entity)
 
 	// simple mutate operation
 	mutateOp := libovsdb.Operation{
@@ -258,7 +257,6 @@ func (odbi *ovndb) aclAddImp(entityType EntityType, entity, direct, match, actio
 }
 
 func (odbi *ovndb) aclDelImp(entityType EntityType, entity, direct, match string, priority int, external_ids map[string]string) (*OvnCommand, error) {
-	var condition []interface{}
 	var table string
 
 	switch entityType {
@@ -315,7 +313,7 @@ func (odbi *ovndb) aclDelImp(entityType EntityType, entity, direct, match string
 	}
 
 	mutation := libovsdb.NewMutation("acls", opDelete, stringToGoUUID(aclUUID))
-	condition = libovsdb.NewCondition("name", "==", entity)
+	condition := libovsdb.NewCondition("name", "==", entity)
 
 	// Simple mutate operation
 	mutateOp := libovsdb.Operation{
@@ -376,8 +374,6 @@ func (odbi *ovndb) aclListImp(entityType EntityType, entity string) ([]*ACL, err
 	odbi.cachemutex.RLock()
 	defer odbi.cachemutex.RUnlock()
 
-	var tableCache map[string]libovsdb.Row
-	var ok bool
 	var tableName string
 
 	switch entityType {
@@ -389,7 +385,7 @@ func (odbi *ovndb) aclListImp(entityType EntityType, entity string) ([]*ACL, err
 		return nil, ErrorOption
 	}
 
-	tableCache, ok = odbi.cache[tableName]
+	tableCache, ok := odbi.cache[tableName]
 	if !ok {
 		return nil, ErrorSchema
 	}
