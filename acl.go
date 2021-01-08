@@ -38,39 +38,33 @@ func (odbi *ovndb) getACLUUIDByRow(entityType EntityType, entity, table string, 
 	odbi.cachemutex.RLock()
 	defer odbi.cachemutex.RUnlock()
 
-	var tableCache map[string]libovsdb.Row
 	var ok bool
 	var drows libovsdb.Row
 	var rowFound bool = false
+	var tableName string
 
 	switch entityType {
 	case LOGICAL_SWITCH:
-		tableCache, ok = odbi.cache[TableLogicalSwitch]
-		if !ok {
-			return "", ErrorSchema
-		}
-		for _, drows = range tableCache {
-			if rlsw, ok := drows.Fields["name"].(string); ok && rlsw == entity {
-				rowFound = true
-				break
-			}
-		}
-		if !rowFound {
-			return "", ErrorNotFound
-		}
-
+		tableName = TableLogicalSwitch
 	case PORT_GROUP:
-		tableCache, ok = odbi.cache[TablePortGroup]
-		if !ok {
-			return "", ErrorSchema
-		} else {
-			drows, ok = tableCache[entity]
-			if !ok {
-				return "", ErrorNotFound
-			}
-		}
+		tableName = TablePortGroup
 	default:
 		return "", ErrorOption
+	}
+
+	tableCache, ok := odbi.cache[tableName]
+	if !ok {
+		return "", ErrorSchema
+	}
+
+	for _, drows = range tableCache {
+		if rlsw, ok := drows.Fields["name"].(string); ok && rlsw == entity {
+			rowFound = true
+			break
+		}
+	}
+	if !rowFound {
+		return "", ErrorNotFound
 	}
 
 	acls := drows.Fields["acls"]
@@ -179,10 +173,8 @@ func (odbi *ovndb) aclAddImp(entityType EntityType, entity, direct, match, actio
 
 	switch entityType {
 	case LOGICAL_SWITCH:
-		condition = libovsdb.NewCondition("name", "==", entity)
 		table = TableLogicalSwitch
 	case PORT_GROUP:
-		condition = libovsdb.NewCondition("_uuid", "==", stringToGoUUID(entity))
 		table = TablePortGroup
 	default:
 		return nil, ErrorOption
@@ -252,7 +244,7 @@ func (odbi *ovndb) aclAddImp(entityType EntityType, entity, direct, match, actio
 		return nil, err
 	}
 	mutation := libovsdb.NewMutation("acls", opInsert, mutateSet)
-	// condition set above
+	condition = libovsdb.NewCondition("name", "==", entity)
 
 	// simple mutate operation
 	mutateOp := libovsdb.Operation{
@@ -268,12 +260,11 @@ func (odbi *ovndb) aclAddImp(entityType EntityType, entity, direct, match, actio
 func (odbi *ovndb) aclDelImp(entityType EntityType, entity, direct, match string, priority int, external_ids map[string]string) (*OvnCommand, error) {
 	var condition []interface{}
 	var table string
+
 	switch entityType {
 	case LOGICAL_SWITCH:
-		condition = libovsdb.NewCondition("name", "==", entity)
 		table = TableLogicalSwitch
 	case PORT_GROUP:
-		condition = libovsdb.NewCondition("_uuid", "==", stringToGoUUID(entity))
 		table = TablePortGroup
 	default:
 		return nil, ErrorOption
@@ -288,7 +279,7 @@ func (odbi *ovndb) aclDelImp(entityType EntityType, entity, direct, match string
 	if match != "" {
 		row["match"] = match
 	}
-	//in ovn pirority is greater than/equal 0,
+	//in ovn priority is greater than/equal 0,
 	//if input the priority < 0, lots of acls will be deleted if matches direct and match condition judgement.
 	if priority >= 0 {
 		row["priority"] = priority
@@ -324,7 +315,7 @@ func (odbi *ovndb) aclDelImp(entityType EntityType, entity, direct, match string
 	}
 
 	mutation := libovsdb.NewMutation("acls", opDelete, stringToGoUUID(aclUUID))
-	// condition set above
+	condition = libovsdb.NewCondition("name", "==", entity)
 
 	// Simple mutate operation
 	mutateOp := libovsdb.Operation{
@@ -387,25 +378,24 @@ func (odbi *ovndb) aclListImp(entityType EntityType, entity string) ([]*ACL, err
 
 	var tableCache map[string]libovsdb.Row
 	var ok bool
+	var tableName string
 
 	switch entityType {
 	case LOGICAL_SWITCH:
-		tableCache, ok = odbi.cache[TableLogicalSwitch]
-		if !ok {
-			return nil, ErrorSchema
-		}
+		tableName = TableLogicalSwitch
 	case PORT_GROUP:
-		tableCache, ok = odbi.cache[TablePortGroup]
-		if !ok {
-			return nil, ErrorSchema
-		}
+		tableName = TablePortGroup
 	default:
 		return nil, ErrorOption
 	}
 
-	for rowUUID, drows := range tableCache {
-		rowName, ok := drows.Fields["name"].(string)
-		if (rowUUID == entity) || (ok && rowName == entity) {
+	tableCache, ok = odbi.cache[tableName]
+	if !ok {
+		return nil, ErrorSchema
+	}
+
+	for _, drows := range tableCache {
+		if rowName, ok := drows.Fields["name"].(string); ok && rowName == entity {
 			acls := drows.Fields["acls"]
 			if acls != nil {
 				switch acls.(type) {
