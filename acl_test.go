@@ -408,8 +408,16 @@ func TestPortGroupACLs(t *testing.T) {
 		cmds = append(cmds, cmd)
 		assert.Nil(t, err)
 
-		err = ovndbapi.Execute(cmds...)
+		//err = ovndbapi.Execute(cmds...)
+		//assert.Nil(t, err)
+
+		fmt.Printf("****** Results from creating switch and LSP for ACL test:\n")
+		result, err := ovndbapi.ExecuteWithResult(cmds...)
 		assert.Nil(t, err)
+
+		for _, r := range result {
+			fmt.Printf("%+v\n", r)
+		}
 
 		// LSP commands require that ports be described by a UUID, so get the UUIDs
 		lsp1UUID, err := lspNameToUUID(PG_TEST_LSP1, ovndbapi)
@@ -442,8 +450,16 @@ func TestPortGroupACLs(t *testing.T) {
 		for i, tc := range portGroupACLTests {
 			cmd, err = ovndbapi.ACLAddEntity(PORT_GROUP, PG_TEST_PG1, tc.Direction, tc.Match, tc.Action, tc.Priority, iMapToSMap(tc.ExternalID), tc.Log, tc.Meter[0], tc.Severity)
 			assert.Nil(t, err)
-			err = ovndbapi.Execute(cmd)
-			assert.Nil(t, err)
+			//err = ovndbapi.Execute(cmd)
+			//assert.Nil(t, err)
+
+			fmt.Printf("****** Results from add ACLS to port group %d:\n", i)
+			result, err := ovndbapi.ExecuteWithResult(cmd)
+			assert.Nil(t,err)
+			for _, r := range result {
+				fmt.Printf("%+v\n", r)
+			}
+
 			acls, err := ovndbapi.ACLListEntity(PORT_GROUP, PG_TEST_PG1)
 			assert.Nil(t, err)
 			assert.Equal(t, i+1, len(acls))

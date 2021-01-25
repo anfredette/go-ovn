@@ -17,6 +17,7 @@
 package goovn
 
 import (
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"reflect"
@@ -86,8 +87,13 @@ func TestPortGroupAPI(t *testing.T) {
 		assert.Nil(err)
 		cmds = append(cmds, cmd)
 
-		err = ovndbapi.Execute(cmds...)
+		fmt.Printf("****** Results from creating switch and four LSPs:\n")
+		result, err := ovndbapi.ExecuteWithResult(cmds...)
 		assert.Nil(err)
+
+		for _, r := range result {
+			fmt.Printf("%+v\n", r)
+		}
 	}
 
 	// Delete Switch
@@ -99,6 +105,14 @@ func TestPortGroupAPI(t *testing.T) {
 
 		err = ovndbapi.Execute(cmd)
 		assert.Nil(err)
+
+		fmt.Printf("****** Results from deleting switch:\n")
+		result, err := ovndbapi.ExecuteWithResult(cmd)
+		assert.Nil(err)
+
+		for _, r := range result {
+			fmt.Printf("%+v\n", r)
+		}
 	}
 
 	// Create a switch w/four ports to be used for logical port tests
@@ -334,10 +348,19 @@ func TestPortGroupAPI(t *testing.T) {
 		// Add the port group
 		cmd, err = ovndbapi.PortGroupAdd(PG_TEST_PG1, ports, nil)
 		assert.Nil(err)
-		err = ovndbapi.Execute(cmd)
-		assert.Nil(err)
+		//err = ovndbapi.Execute(cmd)
+		//assert.Nil(err)
 		// The way this currently works, ovsdb doesn't care whether the ports exist,
 		// and will add the port group regardless. Should it?
+		fmt.Printf("****** Results from adding port group with non-existent port:\n")
+		result, err := ovndbapi.ExecuteWithResult(cmd)
+		assert.Nil(err)
+
+		for _, r := range result {
+			fmt.Printf("%+v\n", r)
+		}
+
+
 
 		// Validate port group
 		pg, err := ovndbapi.PortGroupGet(PG_TEST_PG1)

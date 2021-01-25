@@ -1,6 +1,7 @@
 package goovn
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -30,8 +31,16 @@ func TestBadTransact(t *testing.T) {
 	// \"type\" and \"ip\".  First row, with UUID 9860cf40-bd82-4c24-9514-05b225434934, existed in
 	// the database before this transaction and was not modified by the transaction.  Second row,
 	// with UUID 10d7d018-7444-48de-89fc-cb062f88e520, was inserted by this transaction."
-	err = ovndbapi.Execute(ocmd)
+	//err = ovndbapi.Execute(ocmd)
+	//assert.Error(t, err)
+
+	fmt.Printf("****** Results from Adding second Chassis to OVN SB DB but with same ENCAP_TYPES and IP:\n")
+	result, err := ovndbapi.ExecuteWithResult(ocmd)
 	assert.Error(t, err)
+	fmt.Printf("****** result: %+v, error: %+v\n", result, err)
+	for _, r := range result {
+		fmt.Printf("%+v\n", r)
+	}
 
 	t.Logf("Deleting Chassis:%v", CHASSIS_NAME)
 	ocmd, err = ovndbapi.ChassisDel(CHASSIS_NAME)
