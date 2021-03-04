@@ -17,7 +17,6 @@
 package goovn
 
 import (
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"reflect"
@@ -38,15 +37,6 @@ startConfig pgConfig
 testConfig  pgConfig
 }
 
-func lspNameToUUID(lspName string, c Client) (string, error) {
-	lsp1, err := c.LSPGet(lspName)
-	if err == nil {
-		return lsp1.UUID, nil
-	} else {
-		return "", ErrorNotFound
-	}
-}
-
 func compareExternalIds(want map[string]string, got map[interface{}]interface{}) bool {
 	if len(want) != len(got) {
 		return false
@@ -64,6 +54,7 @@ func TestPortGroupAPI(t *testing.T) {
 	assert := assert.New(t)
 	var cmd *OvnCommand
 	var err error
+	var lsp1UUID, lsp2UUID, lsp3UUID, lsp4UUID string
 
 	// create Switch with four ports
 	createSwitch := func(t *testing.T) {
@@ -87,13 +78,14 @@ func TestPortGroupAPI(t *testing.T) {
 		assert.Nil(err)
 		cmds = append(cmds, cmd)
 
-		fmt.Printf("****** Results from creating switch and four LSPs:\n")
-		result, err := ovndbapi.ExecuteWithResult(cmds...)
+		result, err := ovndbapi.ExecuteR(cmds...)
 		assert.Nil(err)
 
-		for _, r := range result {
-			fmt.Printf("%+v\n", r)
-		}
+		assert.Equal(5, len(result))
+		lsp1UUID = result[1]
+		lsp2UUID = result[2]
+		lsp3UUID = result[3]
+		lsp4UUID = result[4]
 	}
 
 	// Delete Switch
@@ -105,28 +97,10 @@ func TestPortGroupAPI(t *testing.T) {
 
 		err = ovndbapi.Execute(cmd)
 		assert.Nil(err)
-
-		fmt.Printf("****** Results from deleting switch:\n")
-		result, err := ovndbapi.ExecuteWithResult(cmd)
-		assert.Nil(err)
-
-		for _, r := range result {
-			fmt.Printf("%+v\n", r)
-		}
 	}
 
 	// Create a switch w/four ports to be used for logical port tests
 	createSwitch(t)
-
-	// LSP commands require that ports be described by a UUID, so get the UUIDs
-	lsp1UUID, err := lspNameToUUID(PG_TEST_LSP1, ovndbapi)
-	assert.Nil(err)
-	lsp2UUID, err := lspNameToUUID(PG_TEST_LSP2, ovndbapi)
-	assert.Nil(err)
-	lsp3UUID, err := lspNameToUUID(PG_TEST_LSP3, ovndbapi)
-	assert.Nil(err)
-	lsp4UUID, err := lspNameToUUID(PG_TEST_LSP4, ovndbapi)
-	assert.Nil(err)
 
 	portGroupAddTests := []pgTest {
 		{
@@ -348,19 +322,10 @@ func TestPortGroupAPI(t *testing.T) {
 		// Add the port group
 		cmd, err = ovndbapi.PortGroupAdd(PG_TEST_PG1, ports, nil)
 		assert.Nil(err)
-		//err = ovndbapi.Execute(cmd)
-		//assert.Nil(err)
+		err = ovndbapi.Execute(cmd)
+		assert.Nil(err)
 		// The way this currently works, ovsdb doesn't care whether the ports exist,
 		// and will add the port group regardless. Should it?
-		fmt.Printf("****** Results from adding port group with non-existent port:\n")
-		result, err := ovndbapi.ExecuteWithResult(cmd)
-		assert.Nil(err)
-
-		for _, r := range result {
-			fmt.Printf("%+v\n", r)
-		}
-
-
 
 		// Validate port group
 		pg, err := ovndbapi.PortGroupGet(PG_TEST_PG1)

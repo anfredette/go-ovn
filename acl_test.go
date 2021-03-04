@@ -200,7 +200,6 @@ func TestLogicalSwitchACLs(t *testing.T) {
 	}
 	assert.Equal(t, true, len(acls) == 4, "test[%s]", "add second acl")
 
-
 	cmd, err = ovndbapi.ACLDel(LSW, "to-lport", MATCH_SECOND, 1002, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -349,10 +348,10 @@ func compareMeterSlices(s1, s2 []string) bool {
 func containsACL(aclList []*ACL, acl *ACL) bool{
 	for _, a := range aclList {
 		// Compare everything except UUID
-		if a.Action == acl.Action && 
-			a.Direction == acl.Direction && 
-			a.Match == acl.Match && 
-			a.Priority == acl.Priority && 
+		if a.Action == acl.Action &&
+			a.Direction == acl.Direction &&
+			a.Match == acl.Match &&
+			a.Priority == acl.Priority &&
 			a.Log == acl.Log &&
 			compareMeterSlices(a.Meter, acl.Meter) &&
 			a.Severity == acl.Severity &&
@@ -408,22 +407,12 @@ func TestPortGroupACLs(t *testing.T) {
 		cmds = append(cmds, cmd)
 		assert.Nil(t, err)
 
-		//err = ovndbapi.Execute(cmds...)
-		//assert.Nil(t, err)
-
-		fmt.Printf("****** Results from creating switch and LSP for ACL test:\n")
-		result, err := ovndbapi.ExecuteWithResult(cmds...)
+		result, err := ovndbapi.ExecuteR(cmds...)
 		assert.Nil(t, err)
+		assert.Equal(t, 3, len(result))
 
-		for _, r := range result {
-			fmt.Printf("%+v\n", r)
-		}
-
-		// LSP commands require that ports be described by a UUID, so get the UUIDs
-		lsp1UUID, err := lspNameToUUID(PG_TEST_LSP1, ovndbapi)
-		assert.Nil(t, err)
-		lsp2UUID, err := lspNameToUUID(PG_TEST_LSP2, ovndbapi)
-		assert.Nil(t, err)
+		lsp1UUID := result[1]
+		lsp2UUID := result[2]
 
 		// Create port group
 		cmd, err = ovndbapi.PortGroupAdd(PG_TEST_PG1, []string{lsp1UUID, lsp2UUID}, nil)
@@ -450,16 +439,8 @@ func TestPortGroupACLs(t *testing.T) {
 		for i, tc := range portGroupACLTests {
 			cmd, err = ovndbapi.ACLAddEntity(PORT_GROUP, PG_TEST_PG1, tc.Direction, tc.Match, tc.Action, tc.Priority, iMapToSMap(tc.ExternalID), tc.Log, tc.Meter[0], tc.Severity)
 			assert.Nil(t, err)
-			//err = ovndbapi.Execute(cmd)
-			//assert.Nil(t, err)
-
-			fmt.Printf("****** Results from add ACLS to port group %d:\n", i)
-			result, err := ovndbapi.ExecuteWithResult(cmd)
-			assert.Nil(t,err)
-			for _, r := range result {
-				fmt.Printf("%+v\n", r)
-			}
-
+			err = ovndbapi.Execute(cmd)
+			assert.Nil(t, err)
 			acls, err := ovndbapi.ACLListEntity(PORT_GROUP, PG_TEST_PG1)
 			assert.Nil(t, err)
 			assert.Equal(t, i+1, len(acls))

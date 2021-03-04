@@ -178,24 +178,11 @@ func (odbi *ovndb) transact(db string, ops ...libovsdb.Operation) ([]libovsdb.Op
 }
 
 func (odbi *ovndb) execute(cmds ...*OvnCommand) error {
-	if cmds == nil {
-		return nil
-	}
-	var ops []libovsdb.Operation
-	for _, cmd := range cmds {
-		if cmd != nil {
-			ops = append(ops, cmd.Operations...)
-		}
-	}
-
-	_, err := odbi.transact(odbi.db, ops...)
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err := odbi.ExecuteR(cmds...)
+	return err
 }
 
-func (odbi *ovndb) executeWithResult(cmds ...*OvnCommand) ([]string, error) {
+func (odbi *ovndb) executeR(cmds ...*OvnCommand) ([]string, error) {
 	if cmds == nil {
 		return nil, nil
 	}
